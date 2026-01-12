@@ -25,20 +25,22 @@
 
           packages = with pkgs; [
             # C++ development
-            gdb
             clang-tools  # clangd, clang-format
             cmake-format
 
             # Qt development
-            qt6.qtcreator
             qt6.qttools
 
             # Documentation
             help2man
             doxygen
-
-            # Testing
+          ] ++ lib.optionals stdenv.isLinux [
+            # Linux-specific development tools
+            gdb
             valgrind
+          ] ++ lib.optionals (stdenv.isLinux && pkgs ? qt6.qtcreator) [
+            # Qt Creator (not always available on all platforms)
+            qt6.qtcreator
           ];
 
           shellHook = ''
