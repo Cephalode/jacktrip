@@ -43,12 +43,9 @@ stdenv.mkDerivation (finalAttrs: {
   ];
 
   buildInputs = [
-    # Qt6 modules
+    # Qt6 modules (common to all platforms)
     qtbase
     qtdeclarative
-    qtwebsockets
-    qtwebengine
-    qtwebchannel
     qt5compat
     qtsvg
     qtshadertools
@@ -59,6 +56,14 @@ stdenv.mkDerivation (finalAttrs: {
     # Other
     openssl
     libsamplerate  # Use nixpkgs version instead of subproject
+  ] ++ lib.optionals (!stdenv.isDarwin) [
+    # Virtual Studio dependencies (Linux only, due to Qt6 framework issues on macOS)
+    qtwebsockets
+    qtwebengine
+    qtwebchannel
+  ] ++ lib.optionals stdenv.isDarwin [
+    # macOS still needs websockets for classic GUI
+    qtwebsockets
   ];
 
   mesonFlags = [
@@ -68,7 +73,6 @@ stdenv.mkDerivation (finalAttrs: {
     "-Dweakjack=false"
     "-Dnoupdater=true"
     "-Dnogui=false"
-    "-Dnovs=false"
     "-Dnooscpp=false"
     "-Dnoclassic=false"
     "-Dnofeedback=false"
@@ -76,6 +80,12 @@ stdenv.mkDerivation (finalAttrs: {
     "-Dqtedition=opensource"
     "-Dprofile=default"
     "-Dbuildinfo=v${finalAttrs.version}-nix"
+  ] ++ lib.optionals stdenv.isLinux [
+    # Virtual Studio enabled on Linux (full Qt6 WebEngine support)
+    "-Dnovs=false"
+  ] ++ lib.optionals stdenv.isDarwin [
+    # Virtual Studio disabled on macOS (Qt6 framework header issues)
+    "-Dnovs=true"
   ];
 
   # Meson will use provided libsamplerate from buildInputs
@@ -105,6 +115,10 @@ stdenv.mkDerivation (finalAttrs: {
       over the Internet. It supports any number of channels of bidirectional,
       high quality, uncompressed audio signal streaming with the JACK audio
       connection kit.
+
+      This build includes:
+      - Linux: Full GUI with Virtual Studio (Qt6 WebEngine)
+      - macOS: Classic GUI mode (Virtual Studio disabled due to Qt6 framework limitations)
     '';
     homepage = "https://jacktrip.github.io/jacktrip/";
     license = with licenses; [ gpl3Plus lgpl3Plus mit ];
