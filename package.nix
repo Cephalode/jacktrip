@@ -1,43 +1,55 @@
-{ lib
-, stdenv
-# Build system
-, meson
-, ninja
-, pkg-config
-, wrapQtAppsHook
-# Qt6 dependencies
-, qtbase
-, qtdeclarative
-, qtwebsockets
-, qtwebengine
-, qtwebchannel
-, qt5compat
-, qtsvg
-, qtshadertools
-# Audio backend
-, libjack2
-# Other dependencies
-, openssl
-, libsamplerate
-, python3
-# Optional
-, help2man
-, gzip
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+
+  # Build system
+  meson,
+  ninja,
+  pkg-config,
+  wrapQtAppsHook,
+
+  # Qt6 dependencies
+  qtbase,
+  qtdeclarative,
+  qtwebsockets,
+  qtwebengine,
+  qtwebchannel,
+  qt5compat,
+  qtsvg,
+  qtshadertools,
+  # Audio backend
+  libjack2,
+
+  # Other dependencies
+  openssl,
+  libsamplerate,
+  python3,
+
+  # Optional
+  help2man,
+  gzip,
 }:
 
 stdenv.mkDerivation (finalAttrs: {
   pname = "jacktrip";
   version = "2.7.1";
 
-  src = ./.;
+  src = fetchFromGitHub {
+    owner = "jacktrip";
+    repo = "jacktrip";
+    rev = "v${finalAttrs.version}";
+    hash = "sha256-6hQKust4Zd6UPfK+KRzJMo00urXTnqY17IcwFEJoG80=";
+  };
 
   nativeBuildInputs = [
     meson
     ninja
     pkg-config
     wrapQtAppsHook
-    python3  # Required for metainfo generation on Linux
-  ] ++ lib.optionals stdenv.isLinux [
+    python3 # Required for metainfo generation on Linux
+  ]
+  ++ lib.optionals stdenv.isLinux [
     help2man
     gzip
   ];
@@ -49,21 +61,19 @@ stdenv.mkDerivation (finalAttrs: {
     qt5compat
     qtsvg
     qtshadertools
+    qtwebsockets
 
     # Audio
     libjack2
 
     # Other
     openssl
-    libsamplerate  # Use nixpkgs version instead of subproject
-  ] ++ lib.optionals (!stdenv.isDarwin) [
+    libsamplerate # Use nixpkgs version instead of subproject
+  ]
+  ++ lib.optionals (!stdenv.isDarwin) [
     # Virtual Studio dependencies (Linux only, due to Qt6 framework issues on macOS)
-    qtwebsockets
     qtwebengine
     qtwebchannel
-  ] ++ lib.optionals stdenv.isDarwin [
-    # macOS still needs websockets for classic GUI
-    qtwebsockets
   ];
 
   mesonFlags = [
@@ -80,10 +90,12 @@ stdenv.mkDerivation (finalAttrs: {
     "-Dqtedition=opensource"
     "-Dprofile=default"
     "-Dbuildinfo=v${finalAttrs.version}-nix"
-  ] ++ lib.optionals stdenv.isLinux [
+  ]
+  ++ lib.optionals stdenv.isLinux [
     # Virtual Studio enabled on Linux (full Qt6 WebEngine support)
     "-Dnovs=false"
-  ] ++ lib.optionals stdenv.isDarwin [
+  ]
+  ++ lib.optionals stdenv.isDarwin [
     # Virtual Studio disabled on macOS (Qt6 framework header issues)
     "-Dnovs=true"
   ];
@@ -121,7 +133,11 @@ stdenv.mkDerivation (finalAttrs: {
       - macOS: Classic GUI mode (Virtual Studio disabled due to Qt6 framework limitations)
     '';
     homepage = "https://jacktrip.github.io/jacktrip/";
-    license = with licenses; [ gpl3Plus lgpl3Plus mit ];
+    license = with licenses; [
+      gpl3Plus
+      lgpl3Plus
+      mit
+    ];
     maintainers = with maintainers; [ ];
     platforms = platforms.unix;
     mainProgram = "jacktrip";
